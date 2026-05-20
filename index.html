@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indica+ | Gerenciador de Indicações</title>
+    <!-- Tailwind CSS para um design moderno e limpo -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <!-- Navegação Simples -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="bg-indigo-600 text-white p-2 rounded-xl font-bold text-xl tracking-tight">I+</div>
+                <span class="font-bold text-xl text-slate-900">Indica<span class="text-indigo-600">Mais</span></span>
+            </div>
+            <span class="text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200">Painel de Controle</span>
+        </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto px-4 py-8 space-y-6">
+
+        <!-- Alerta de Cópia Rápida (Aparece ao gerar qualquer código) -->
+        <div id="copy-modal" class="hidden bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-sm">
+            <div>
+                <p class="text-emerald-800 font-bold text-sm">✓ Novo código gerado com sucesso!</p>
+                <p class="text-emerald-600 text-xs mt-0.5">Clique ao lado para copiar e entregar ao cliente.</p>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <span id="generated-code-display" class="bg-white border border-emerald-200 font-mono font-bold text-emerald-700 px-3 py-2 rounded-xl text-sm flex-1 text-center sm:text-left min-w-[120px]"></span>
+                <button onclick="copyGeneratedCode()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap">
+                    📋 <span id="copy-btn-text">Copiar Código</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Bloco de Ações: As Duas Opções Solicitadas -->
+        <div class="grid md:grid-cols-2 gap-6">
+            
+            <!-- OPÇÃO 1: Criar Código Cliente Base -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="bg-indigo-50 text-indigo-600 p-2 rounded-lg text-lg">👤</div>
+                    <h2 class="font-bold text-lg text-slate-900">1. Criar Código Cliente Base</h2>
+                </div>
+                <p class="text-xs text-slate-500 leading-relaxed">Use para cadastrar um cliente inicial que começou a comprar na sua loja sem ter sido indicado por ninguém.</p>
+                
+                <form id="base-form" onsubmit="createBaseClient(event)" class="space-y-4 pt-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Nome do Cliente Base</label>
+                        <input type="text" id="base-name" required placeholder="Ex: João Silva" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+                    <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-3 rounded-xl text-sm transition-colors cursor-pointer">
+                        Gerar Código Base
+                    </button>
+                </form>
+            </div>
+
+            <!-- OPÇÃO 2: Confirmador de Código (Indicação) -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="bg-emerald-50 text-emerald-600 p-2 rounded-lg text-lg">🤝</div>
+                    <h2 class="font-bold text-lg text-slate-900">2. Confirmador desse Código</h2>
+                </div>
+                <p class="text-xs text-slate-500 leading-relaxed">Use quando um cliente novo chegar dizendo que possui o código de um padrinho. O padrinho ganha ponto e o novo cliente recebe seu próprio código.</p>
+                
+                <form id="referral-form" onsubmit="confirmReferral(event)" class="space-y-4 pt-2">
+                    <div class="grid sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Nome do Novo Cliente</label>
+                            <input type="text" id="new-client-name" required placeholder="Ex: Maria Costa" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Código de Quem Indicou</label>
+                            <input type="text" id="referrer-code" required placeholder="Ex: JOAO345" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-colors uppercase">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl text-sm transition-colors cursor-pointer shadow-md shadow-indigo-100">
+                        Confirmar e Vincular Indicação
+                    </button>
+                </form>
+            </div>
+
+        </div>
+
+        <!-- Histórico e Controle Gerencial -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-100">
+                <h2 class="font-bold text-lg text-slate-900">📊 Relatório de Códigos e Indicações Ativas</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-400 text-xs font-bold uppercase border-b border-slate-100">
+                            <th class="p-4">Cliente</th>
+                            <th class="p-4">Código Dele</th>
+                            <th class="p-4">Quem Indicou</th>
+                            <th class="p-4 text-center">Quantos Indicou</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="text-sm divide-y divide-slate-100 text-slate-600">
+                        <!-- Gerado automaticamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Armazenamento no localStorage para não perder dados ao atualizar
+        let database = JSON.parse(localStorage.getItem('indica_app_db')) || {};
+        let lastCode = "";
+
+        function save() {
+            localStorage.setItem('indica_app_db', JSON.stringify(database));
+            renderTable();
+        }
+
+        // Cria o código baseado no primeiro nome + número aleatório
+        function generateCode(name) {
+            let clean = name.trim().replace(/[^a-zA-Z]/g, '');
+            let prefix = clean.substring(0,4).toUpperCase();
+            if(prefix.length < 2) prefix = "CLIE";
+            
+            let num = Math.floor(100 + Math.random() * 900);
+            let code = `${prefix}${num}`;
+            
+            while(database[code]) { 
+                num = Math.floor(100 + Math.random() * 900);
+                code = `${prefix}${num}`;
+            }
+            return code;
+        }
+
+        // Mostra a caixa verde para cópia rápida
+        function showCopyBox(code) {
+            lastCode = code;
+            document.getElementById('generated-code-display').innerText = code;
+            document.getElementById('copy-modal').classList.remove('hidden');
+            document.getElementById('copy-btn-text').innerText = "Copiar Código";
+        }
+
+        function copyGeneratedCode() {
+            if(!lastCode) return;
+            navigator.clipboard.writeText(lastCode).then(() => {
+                document.getElementById('copy-btn-text').innerText = "Copiado!";
+                setTimeout(() => {
+                    document.getElementById('copy-btn-text').innerText = "Copiar Código";
+                }, 1500);
+            });
+        }
+
+        // AÇÃO 1: Cadastro do Cliente Base
+        function createBaseClient(e) {
+            e.preventDefault();
+            const name = document.getElementById('base-name').value.trim();
+            const code = generateCode(name);
+
+            database[code] = {
+                name: name,
+                code: code,
+                origin: 'Direto / Base',
+                count: 0
+            };
+
+            save();
+            showCopyBox(code);
+            document.getElementById('base-form').reset();
+        }
+
+        // AÇÃO 2: Confirmador de código recebido
+        function confirmReferral(e) {
+            e.preventDefault();
+            const newName = document.getElementById('new-client-name').value.trim();
+            const refCode = document.getElementById('referrer-code').value.trim().toUpperCase();
+
+            // Valida se o código digitado existe
+            if(!database[refCode]) {
+                alert(`Aviso: O código "${refCode}" não existe no sistema. Verifique a digitação.`);
+                return;
+            }
+
+            // Gera o código do novo indicado
+            const newCode = generateCode(newName);
+
+            database[newCode] = {
+                name: newName,
+                code: newCode,
+                origin: refCode, // Salva o código de quem indicou
+                count: 0
+            };
+
+            // Soma 1 indicação de sucesso para o padrinho dono do código
+            database[refCode].count += 1;
+
+            save();
+            showCopyBox(newCode);
+            
+            alert(`Sucesso!\n• Indicação computada para: ${database[refCode].name}\n• Novo código gerado para ${newName}: ${newCode}`);
+            document.getElementById('referral-form').reset();
+        }
+
+        // Renderização da Lista Gerencial
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            const items = Object.values(database);
+
+            if(items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-400">Nenhum código cadastrado. Utilize as opções acima para começar.</td></tr>`;
+                return;
+            }
+
+            items.forEach(item => {
+                let indicatorName = item.origin;
+                // Busca o nome do padrinho se for um código válido
+                if(database[item.origin]) {
+                    indicatorName = `${database[item.origin].name} (${item.origin})`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-4 font-semibold text-slate-900">${item.name}</td>
+                    <td class="p-4">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-indigo-50 text-indigo-700 font-mono text-xs px-2.5 py-1 rounded-md border border-indigo-100 font-bold">${item.code}</span>
+                            <button onclick="navigator.clipboard.writeText('${item.code}'); alert('Código ${item.code} copiado!');" class="text-slate-400 hover:text-slate-600 text-xs cursor-pointer" title="Copiar">📋</button>
+                        </div>
+                    </td>
+                    <td class="p-4 text-xs text-slate-500">${indicatorName}</td>
+                    <td class="p-4 text-center font-bold text-slate-800">${item.count} ind.</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Iniciar tabela ao carregar a página
+        renderTable();
+    </script>
+</body>
+</html>
