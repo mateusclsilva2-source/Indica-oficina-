@@ -110,163 +110,261 @@
                 </table>
             </div>
         </div>
-    </main>
+    </main
+        
+        <script type="module">
 
-    <script>
-        // Armazenamento no localStorage para não perder dados ao atualizar
-        let database = JSON.parse(localStorage.getItem('indica_app_db')) || {};
-        let lastCode = "";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
-        function save() {
-            localStorage.setItem('indica_app_db', JSON.stringify(database));
-            renderTable();
-        }
+import {
+  getDatabase,
+  ref,
+  set,
+  get,
+  child
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-        // Cria o código baseado no primeiro nome + número aleatório
-        function generateCode(name) {
-            let clean = name.trim().replace(/[^a-zA-Z]/g, '');
-            let prefix = clean.substring(0,4).toUpperCase();
-            if(prefix.length < 2) prefix = "CLIE";
-            
-            let num = Math.floor(100 + Math.random() * 900);
-            let code = `${prefix}${num}`;
-            
-            while(database[code]) { 
-                num = Math.floor(100 + Math.random() * 900);
-                code = `${prefix}${num}`;
-            }
-            return code;
-        }
-
-        // Mostra a caixa verde para cópia rápida
-        function showCopyBox(code) {
-            lastCode = code;
-            document.getElementById('generated-code-display').innerText = code;
-            document.getElementById('copy-modal').classList.remove('hidden');
-            document.getElementById('copy-btn-text').innerText = "Copiar Código";
-        }
-
-        function copyGeneratedCode() {
-            if(!lastCode) return;
-            navigator.clipboard.writeText(lastCode).then(() => {
-                document.getElementById('copy-btn-text').innerText = "Copiado!";
-                setTimeout(() => {
-                    document.getElementById('copy-btn-text').innerText = "Copiar Código";
-                }, 1500);
-            });
-        }
-
-        // AÇÃO 1: Cadastro do Cliente Base
-        function createBaseClient(e) {
-            e.preventDefault();
-            const name = document.getElementById('base-name').value.trim();
-            const code = generateCode(name);
-
-            database[code] = {
-                name: name,
-                code: code,
-                origin: 'Direto / Base',
-                count: 0
-            };
-
-            save();
-            showCopyBox(code);
-            document.getElementById('base-form').reset();
-        }
-
-        // AÇÃO 2: Confirmador de código recebido
-        function confirmReferral(e) {
-            e.preventDefault();
-            const newName = document.getElementById('new-client-name').value.trim();
-            const refCode = document.getElementById('referrer-code').value.trim().toUpperCase();
-
-            // Valida se o código digitado existe
-            if(!database[refCode]) {
-                alert(`Aviso: O código "${refCode}" não existe no sistema. Verifique a digitação.`);
-                return;
-            }
-
-            // Gera o código do novo indicado
-            const newCode = generateCode(newName);
-
-            database[newCode] = {
-                name: newName,
-                code: newCode,
-                origin: refCode, // Salva o código de quem indicou
-                count: 0
-            };
-
-            // Soma 1 indicação de sucesso para o padrinho dono do código
-            database[refCode].count += 1;
-
-            save();
-            showCopyBox(newCode);
-            
-            alert(`Sucesso!\n• Indicação computada para: ${database[refCode].name}\n• Novo código gerado para ${newName}: ${newCode}`);
-            document.getElementById('referral-form').reset();
-        }
-
-        // Renderização da Lista Gerencial
-        function renderTable() {
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
-            const items = Object.values(database);
-
-            if(items.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-400">Nenhum código cadastrado. Utilize as opções acima para começar.</td></tr>`;
-                return;
-            }
-
-            items.forEach(item => {
-                let indicatorName = item.origin;
-                // Busca o nome do padrinho se for um código válido
-                if(database[item.origin]) {
-                    indicatorName = `${database[item.origin].name} (${item.origin})`;
-                }
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition-colors";
-                tr.innerHTML = `
-                    <td class="p-4 font-semibold text-slate-900">${item.name}</td>
-                    <td class="p-4">
-                        <div class="flex items-center gap-2">
-                            <span class="bg-indigo-50 text-indigo-700 font-mono text-xs px-2.5 py-1 rounded-md border border-indigo-100 font-bold">${item.code}</span>
-                            <button onclick="navigator.clipboard.writeText('${item.code}'); alert('Código ${item.code} copiado!');" class="text-slate-400 hover:text-slate-600 text-xs cursor-pointer" title="Copiar">📋</button>
-                        </div>
-                    </td>
-                    <td class="p-4 text-xs text-slate-500">${indicatorName}</td>
-                    <td class="p-4 text-center font-bold text-slate-800">${item.count} ind.</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // Iniciar tabela ao carregar a página
-        renderTable();
-    </script>
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
 
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+// CONFIG FIREBASE
+const firebaseConfig = {
+  apiKey: "AIzaSyD0q0agSZcI-agco2QT8Y3Q4my-ydPVVgs",
+  authDomain: "indica-mais-ce824.firebaseapp.com",
+  databaseURL: "https://indica-mais-ce824-default-rtdb.firebaseio.com",
+  projectId: "indica-mais-ce824",
+  storageBucket: "indica-mais-ce824.appspot.com",
+  messagingSenderId: "674767495944",
+  appId: "1:674767495944:web:1fa05383c2641b4d1782bd",
+  measurementId: "G-RDDHMSS9RX"
+};
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyD0q0agSZcI-agco2QT8Y3Q4my-ydPVVgs",
-    authDomain: "indica-mais-ce824.firebaseapp.com",
-    databaseURL: "https://indica-mais-ce824-default-rtdb.firebaseio.com",
-    projectId: "indica-mais-ce824",
-    storageBucket: "indica-mais-ce824.appspot.com",
-    messagingSenderId: "674767495944",
-    appId: "1:674767495944:web:1fa05383c2641b4d1782bd",
-    measurementId: "G-RDDHMSS9RX"
+
+// INICIAR FIREBASE
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const analytics = getAnalytics(app);
+
+console.log("Firebase conectado!");
+
+
+// BANCO DE DADOS
+let database = {};
+let lastCode = "";
+
+
+// CARREGAR DADOS DO FIREBASE
+async function loadDatabase() {
+  const snapshot = await get(child(ref(db), 'clientes'));
+
+  if(snapshot.exists()) {
+    database = snapshot.val();
+  } else {
+    database = {};
+  }
+
+  renderTable();
+}
+
+
+// SALVAR DADOS NO FIREBASE
+async function save() {
+  await set(ref(db, 'clientes'), database);
+  renderTable();
+}
+
+
+// GERAR CÓDIGO
+function generateCode(name) {
+
+  let clean = name.trim().replace(/[^a-zA-Z]/g, '');
+
+  let prefix = clean.substring(0,4).toUpperCase();
+
+  if(prefix.length < 2) prefix = "CLIE";
+
+  let num = Math.floor(100 + Math.random() * 900);
+
+  let code = `${prefix}${num}`;
+
+  while(database[code]) {
+
+    num = Math.floor(100 + Math.random() * 900);
+
+    code = `${prefix}${num}`;
+  }
+
+  return code;
+}
+
+
+// MOSTRAR CAIXA DE CÓPIA
+function showCopyBox(code) {
+
+  lastCode = code;
+
+  document.getElementById('generated-code-display').innerText = code;
+
+  document.getElementById('copy-modal').classList.remove('hidden');
+
+  document.getElementById('copy-btn-text').innerText = "Copiar Código";
+}
+
+
+// COPIAR CÓDIGO
+function copyGeneratedCode() {
+
+  if(!lastCode) return;
+
+  navigator.clipboard.writeText(lastCode).then(() => {
+
+    document.getElementById('copy-btn-text').innerText = "Copiado!";
+
+    setTimeout(() => {
+
+      document.getElementById('copy-btn-text').innerText = "Copiar Código";
+
+    }, 1500);
+  });
+}
+
+
+// CADASTRO BASE
+window.createBaseClient = async function(e) {
+
+  e.preventDefault();
+
+  const name = document.getElementById('base-name').value.trim();
+
+  const code = generateCode(name);
+
+  database[code] = {
+    name: name,
+    code: code,
+    origin: 'Direto / Base',
+    count: 0
   };
 
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
+  await save();
 
-  console.log("Firebase conectado!");
+  showCopyBox(code);
+
+  document.getElementById('base-form').reset();
+}
+
+
+// CONFIRMAR INDICAÇÃO
+window.confirmReferral = async function(e) {
+
+  e.preventDefault();
+
+  const newName = document.getElementById('new-client-name').value.trim();
+
+  const refCode = document.getElementById('referrer-code').value.trim().toUpperCase();
+
+  if(!database[refCode]) {
+
+    alert(`Aviso: O código "${refCode}" não existe.`);
+
+    return;
+  }
+
+  const newCode = generateCode(newName);
+
+  database[newCode] = {
+    name: newName,
+    code: newCode,
+    origin: refCode,
+    count: 0
+  };
+
+  database[refCode].count += 1;
+
+  await save();
+
+  showCopyBox(newCode);
+
+  alert(`Sucesso!\nNovo código: ${newCode}`);
+
+  document.getElementById('referral-form').reset();
+}
+
+
+// RENDERIZAR TABELA
+function renderTable() {
+
+  const tbody = document.getElementById('table-body');
+
+  tbody.innerHTML = '';
+
+  const items = Object.values(database);
+
+  if(items.length === 0) {
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" class="p-8 text-center text-slate-400">
+          Nenhum código cadastrado.
+        </td>
+      </tr>
+    `;
+
+    return;
+  }
+
+  items.forEach(item => {
+
+    let indicatorName = item.origin;
+
+    if(database[item.origin]) {
+
+      indicatorName = `${database[item.origin].name} (${item.origin})`;
+    }
+
+    const tr = document.createElement('tr');
+
+    tr.className = "hover:bg-slate-50 transition-colors";
+
+    tr.innerHTML = `
+      <td class="p-4 font-semibold text-slate-900">${item.name}</td>
+
+      <td class="p-4">
+        <div class="flex items-center gap-2">
+
+          <span class="bg-indigo-50 text-indigo-700 font-mono text-xs px-2.5 py-1 rounded-md border border-indigo-100 font-bold">
+            ${item.code}
+          </span>
+
+          <button
+            onclick="navigator.clipboard.writeText('${item.code}')"
+            class="text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+          >
+            📋
+          </button>
+
+        </div>
+      </td>
+
+      <td class="p-4 text-xs text-slate-500">
+        ${indicatorName}
+      </td>
+
+      <td class="p-4 text-center font-bold text-slate-800">
+        ${item.count} ind.
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+
+// INICIAR
+loadDatabase();
+
+window.copyGeneratedCode = copyGeneratedCode;
+
 </script>
 
 </body>
-</html>
 </html>
