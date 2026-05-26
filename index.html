@@ -244,5 +244,29 @@
         // Iniciar tabela ao carregar a página
         renderTable();
     </script>
+
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0q0agSZcI-agco2QT8Y3Q4my-ydPVVgs",
+    authDomain: "indica-mais-ce824.firebaseapp.com",
+    databaseURL: "https://indica-mais-ce824-default-rtdb.firebaseio.com",
+    projectId: "indica-mais-ce824",
+    storageBucket: "indica-mais-ce824.appspot.com",
+    messagingSenderId: "674767495944",
+    appId: "1:674767495944:web:1fa05383c2641b4d1782bd",
+    measurementId: "G-RDDHMSS9RX"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+
+  console.log("Firebase conectado!");
+</script>
+
 </body>
+</html>
 </html>
