@@ -8,25 +8,19 @@
 </head>
 <body class="bg-slate-50 min-h-screen p-4">
 
-    <!-- Tela de Login/Registro -->
+    <!-- Tela de Login -->
     <div id="login-box" class="max-w-md mx-auto bg-white p-8 rounded-3xl shadow-xl mt-10">
         <h1 class="text-2xl font-bold text-center mb-6">Indica<span class="text-indigo-600">Mais</span></h1>
-        
         <div class="space-y-4">
-            <input type="text" id="user-name" placeholder="Seu nome para gerar código" class="w-full p-4 bg-slate-50 border rounded-2xl">
+            <input type="text" id="user-name" placeholder="Seu nome real" class="w-full p-4 bg-slate-50 border rounded-2xl">
             <button id="enter-btn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl">Gerar meu código</button>
-            
-            <div class="relative py-2">
-                <div class="absolute inset-0 flex items-center"><div class="w-full border-t"></div></div>
-                <div class="relative flex justify-center text-xs uppercase text-slate-400"><span class="bg-white px-2">ou</span></div>
-            </div>
-
-            <input type="text" id="login-code" placeholder="Entrar com código de indicador" class="w-full p-4 bg-slate-50 border rounded-2xl uppercase">
+            <div class="text-center text-slate-400 text-xs">OU</div>
+            <input type="text" id="login-code" placeholder="Código de indicador" class="w-full p-4 bg-slate-50 border rounded-2xl uppercase">
             <button id="login-code-btn" class="w-full bg-slate-800 text-white font-bold py-4 rounded-2xl">Acessar Painel</button>
         </div>
     </div>
 
-    <!-- Painel do Usuário -->
+    <!-- Painel -->
     <div id="app-box" class="hidden max-w-md mx-auto bg-white p-6 rounded-3xl shadow-xl mt-10">
         <button onclick="location.reload()" class="text-sm text-slate-400 mb-4">← Sair</button>
         
@@ -41,29 +35,45 @@
             <button id="register-ref-btn" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Registrar Indicação</button>
         </div>
 
-        <h3 class="font-bold mb-3 border-b pb-2">Seus Indicados:</h3>
-        <ul id="ref-list" class="space-y-2 text-sm text-slate-700"></ul>
+        <!-- NOVO QUADRO DE RELATÓRIO -->
+        <h3 class="font-bold mb-3 border-b pb-2">Relatório de Indicadores:</h3>
+        <div id="report-list" class="space-y-2 text-sm text-slate-600"></div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getDatabase, ref, get, update, push, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        import { getDatabase, ref, get, update, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         const db = getDatabase(initializeApp({ databaseURL: "https://indica-mais-ce824-default-rtdb.firebaseio.com" }));
         let usuarioAtual = { nome: "", codigo: "" };
 
-        // Função de Acesso
-        async function entrar(nome, codigo) {
-            let userRef;
-            if (codigo) {
-                // Busca usuário pelo código
-                const snapshot = await get(ref(db, 'usuarios'));
-                snapshot.forEach(child => {
-                    if (child.val().codigo === codigo) userRef = child.val();
+        async function carregarRelatorio() {
+            const reportList = document.getElementById('report-list');
+            reportList.innerHTML = "";
+            const snap = await get(ref(db, 'usuarios'));
+            if(snap.exists()){
+                snap.forEach(user => {
+                    const data = user.val();
+                    const total = data.indicados ? Object.keys(data.indicados).length : 0;
+                    reportList.innerHTML += `
+                        <div class="flex justify-between bg-slate-50 p-3 rounded-xl border">
+                            <span><b>${data.nome}</b> (${data.codigo})</span>
+                            <span class="font-bold text-indigo-600">${total} indicações</span>
+                        </div>`;
                 });
+            }
+        }
+
+        async function entrar(nome, codigo) {
+            let userRef = null;
+            const allUsers = await get(ref(db, 'usuarios'));
+            
+            if (codigo) {
+                allUsers.forEach(child => { if (child.val().codigo === codigo) userRef = child.val(); });
             } else {
-                userRef = { nome, codigo: nome.substring(0,3).toUpperCase() + "381" };
-                await update(ref(db, 'usuarios/' + nome), userRef);
+                usuarioAtual = { nome, codigo: nome.substring(0,3).toUpperCase() + "381" };
+                await update(ref(db, 'usuarios/' + nome), usuarioAtual);
+                userRef = usuarioAtual;
             }
 
             if (!userRef) return alert("Código não encontrado!");
@@ -73,10 +83,9 @@
             document.getElementById('my-code').innerText = userRef.codigo;
             document.getElementById('login-box').classList.add('hidden');
             document.getElementById('app-box').classList.remove('hidden');
-            carregarQuadro(userRef.nome);
+            carregarRelatorio();
         }
 
-        // Eventos
         document.getElementById('enter-btn').addEventListener('click', () => entrar(document.getElementById('user-name').value.trim(), null));
         document.getElementById('login-code-btn').addEventListener('click', () => entrar(null, document.getElementById('login-code').value.trim().toUpperCase()));
 
@@ -85,17 +94,9 @@
             if (!indicado) return;
             await push(ref(db, 'usuarios/' + usuarioAtual.nome + '/indicados'), { nome: indicado });
             document.getElementById('new-indicated-name').value = "";
-            carregarQuadro(usuarioAtual.nome);
+            alert("Indicação registrada!");
+            carregarRelatorio();
         });
-
-        async function carregarQuadro(nome) {
-            const list = document.getElementById('ref-list');
-            list.innerHTML = "";
-            const snap = await get(ref(db, 'usuarios/' + nome + '/indicados'));
-            if(snap.exists()){
-                snap.forEach(c => list.innerHTML += `<li class="bg-indigo-50 p-3 rounded-xl border border-indigo-100">👤 ${c.val().nome}</li>`);
-            }
-        }
 
         document.getElementById('copy-code-btn').addEventListener('click', () => {
             navigator.clipboard.writeText(usuarioAtual.codigo);
