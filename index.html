@@ -3,29 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Indica+ | Acesso Rápido</title>
+    <title>Indica+ | Painel</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
 
     <div id="login-box" class="w-full max-w-sm bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
         <h1 class="text-2xl font-bold text-center mb-6">Indica<span class="text-indigo-600">Mais</span></h1>
-        <input type="text" id="user-key" placeholder="Digite seu código ou nome" class="w-full p-4 mb-4 bg-slate-50 border border-slate-200 rounded-2xl">
+        <input type="text" id="user-key" placeholder="Digite seu nome ou código" class="w-full p-4 mb-4 bg-slate-50 border border-slate-200 rounded-2xl">
         <button id="enter-btn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl">Entrar no Painel</button>
     </div>
 
     <div id="app-box" class="hidden w-full max-w-sm bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
-        <h2 class="text-lg font-bold mb-4">Olá, <span id="display-user"></span>!</h2>
-        <div class="p-4 bg-indigo-50 rounded-2xl text-center mb-4">
-            <p class="text-xs text-indigo-600 font-bold uppercase">Suas Indicações</p>
-            <p id="count" class="text-4xl font-black text-indigo-700">0</p>
+        <h2 class="text-lg font-bold mb-4 text-slate-800">Olá, <span id="display-user"></span>!</h2>
+        
+        <div class="p-6 bg-indigo-50 rounded-3xl text-center mb-6 border border-indigo-100">
+            <p class="text-xs text-indigo-600 font-bold uppercase tracking-widest">Suas Indicações</p>
+            <p id="count" class="text-5xl font-black text-indigo-700 my-2">0</p>
         </div>
-        <button onclick="location.reload()" class="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl">Sair</button>
+
+        <button id="add-ref" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl mb-3 shadow-lg shadow-emerald-200">Registrar Indicação</button>
+        <button onclick="location.reload()" class="w-full bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl">Sair</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        import { getDatabase, ref, get, update, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD0q0agSZcI-agco2QT8Y3Q4my-ydPVVgs",
@@ -34,27 +37,35 @@
         };
 
         const db = getDatabase(initializeApp(firebaseConfig));
+        let currentUser = "";
 
+        // Entrar
         document.getElementById('enter-btn').addEventListener('click', async () => {
-            const key = document.getElementById('user-key').value.trim();
-            if (!key) return alert("Digite um nome ou código!");
+            currentUser = document.getElementById('user-key').value.trim();
+            if (!currentUser) return alert("Digite algo!");
 
-            // Tenta buscar os dados do usuário no Firebase
-            const snapshot = await get(ref(db, 'usuarios/' + key));
+            const userRef = ref(db, 'usuarios/' + currentUser);
+            const snapshot = await get(userRef);
             
-            // Se não existir, cria o usuário no banco automaticamente
             if (!snapshot.exists()) {
-                await update(ref(db, 'usuarios/' + key), { nome: key, indicações: 0 });
+                await update(userRef, { nome: currentUser, indicações: 0 });
             }
 
-            // Exibe o painel
-            document.getElementById('display-user').innerText = key;
+            document.getElementById('display-user').innerText = currentUser;
             document.getElementById('login-box').classList.add('hidden');
             document.getElementById('app-box').classList.remove('hidden');
             
-            // Carrega as indicações atuais
-            const data = (await get(ref(db, 'usuarios/' + key))).val();
+            // Atualiza o contador na tela
+            const data = (await get(userRef)).val();
             document.getElementById('count').innerText = data.indicações;
+        });
+
+        // Registrar nova indicação
+        document.getElementById('add-ref').addEventListener('click', async () => {
+            const userRef = ref(db, 'usuarios/' + currentUser);
+            await update(userRef, { indicações: increment(1) });
+            const newData = (await get(userRef)).val();
+            document.getElementById('count').innerText = newData.indicações;
         });
     </script>
 </body>
