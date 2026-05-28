@@ -8,51 +8,84 @@
 </head>
 <body class="bg-slate-50 min-h-screen p-4">
 
-    <!-- Tela de Login -->
+    <!-- Tela de Login/Registro -->
     <div id="login-box" class="max-w-md mx-auto bg-white p-8 rounded-3xl shadow-xl mt-10">
         <h1 class="text-2xl font-bold text-center mb-6">Indica<span class="text-indigo-600">Mais</span></h1>
-        <input type="text" id="user-name" placeholder="Seu nome real" class="w-full p-4 mb-4 bg-slate-50 border rounded-2xl">
-        <button id="enter-btn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl">Entrar / Registrar</button>
+        
+        <div class="space-y-4">
+            <input type="text" id="user-name" placeholder="Seu nome para gerar código" class="w-full p-4 bg-slate-50 border rounded-2xl">
+            <button id="enter-btn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl">Gerar meu código</button>
+            
+            <div class="relative py-2">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t"></div></div>
+                <div class="relative flex justify-center text-xs uppercase text-slate-400"><span class="bg-white px-2">ou</span></div>
+            </div>
+
+            <input type="text" id="login-code" placeholder="Entrar com código de indicador" class="w-full p-4 bg-slate-50 border rounded-2xl uppercase">
+            <button id="login-code-btn" class="w-full bg-slate-800 text-white font-bold py-4 rounded-2xl">Acessar Painel</button>
+        </div>
     </div>
 
-    <!-- Painel -->
+    <!-- Painel do Usuário -->
     <div id="app-box" class="hidden max-w-md mx-auto bg-white p-6 rounded-3xl shadow-xl mt-10">
-        <button onclick="location.reload()" class="text-sm text-slate-400 mb-4">← Voltar à tela inicial</button>
+        <button onclick="location.reload()" class="text-sm text-slate-400 mb-4">← Sair</button>
         
         <h2 class="text-xl font-bold">Olá, <span id="display-name"></span>!</h2>
-        
-        <!-- Botão de copiar adicionado aqui -->
         <div class="flex items-center gap-2 mb-6">
             <p class="text-indigo-600 font-bold">Seu Código: <span id="my-code" class="text-xl"></span></p>
-            <button id="copy-code-btn" class="bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-lg text-xs font-bold text-slate-600">Copiar</button>
+            <button id="copy-code-btn" class="bg-slate-100 px-3 py-1 rounded-lg text-xs font-bold text-slate-600">Copiar</button>
         </div>
 
         <div class="space-y-3 mb-8">
             <input type="text" id="new-indicated-name" placeholder="Nome do indicado" class="w-full p-3 rounded-xl border bg-slate-50">
-            <input type="text" id="ref-code-used" placeholder="Código de quem te indicou" class="w-full p-3 rounded-xl border bg-slate-50">
             <button id="register-ref-btn" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Registrar Indicação</button>
         </div>
 
-        <h3 class="font-bold mb-3 border-b pb-2">Quem você indicou:</h3>
+        <h3 class="font-bold mb-3 border-b pb-2">Seus Indicados:</h3>
         <ul id="ref-list" class="space-y-2 text-sm text-slate-700"></ul>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getDatabase, ref, get, update, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        import { getDatabase, ref, get, update, push, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         const db = getDatabase(initializeApp({ databaseURL: "https://indica-mais-ce824-default-rtdb.firebaseio.com" }));
+        let usuarioAtual = { nome: "", codigo: "" };
 
-        let nomeUsuarioAtual = "";
+        // Função de Acesso
+        async function entrar(nome, codigo) {
+            let userRef;
+            if (codigo) {
+                // Busca usuário pelo código
+                const snapshot = await get(ref(db, 'usuarios'));
+                snapshot.forEach(child => {
+                    if (child.val().codigo === codigo) userRef = child.val();
+                });
+            } else {
+                userRef = { nome, codigo: nome.substring(0,3).toUpperCase() + "381" };
+                await update(ref(db, 'usuarios/' + nome), userRef);
+            }
 
-        // Função para copiar código
-        document.getElementById('copy-code-btn').addEventListener('click', () => {
-            const code = document.getElementById('my-code').innerText;
-            navigator.clipboard.writeText(code).then(() => {
-                const btn = document.getElementById('copy-code-btn');
-                btn.innerText = "Copiado!";
-                setTimeout(() => btn.innerText = "Copiar", 2000);
-            });
+            if (!userRef) return alert("Código não encontrado!");
+
+            usuarioAtual = userRef;
+            document.getElementById('display-name').innerText = userRef.nome;
+            document.getElementById('my-code').innerText = userRef.codigo;
+            document.getElementById('login-box').classList.add('hidden');
+            document.getElementById('app-box').classList.remove('hidden');
+            carregarQuadro(userRef.nome);
+        }
+
+        // Eventos
+        document.getElementById('enter-btn').addEventListener('click', () => entrar(document.getElementById('user-name').value.trim(), null));
+        document.getElementById('login-code-btn').addEventListener('click', () => entrar(null, document.getElementById('login-code').value.trim().toUpperCase()));
+
+        document.getElementById('register-ref-btn').addEventListener('click', async () => {
+            const indicado = document.getElementById('new-indicated-name').value.trim();
+            if (!indicado) return;
+            await push(ref(db, 'usuarios/' + usuarioAtual.nome + '/indicados'), { nome: indicado });
+            document.getElementById('new-indicated-name').value = "";
+            carregarQuadro(usuarioAtual.nome);
         });
 
         async function carregarQuadro(nome) {
@@ -60,37 +93,13 @@
             list.innerHTML = "";
             const snap = await get(ref(db, 'usuarios/' + nome + '/indicados'));
             if(snap.exists()){
-                snap.forEach(child => {
-                    list.innerHTML += `<li class="bg-indigo-50 p-3 rounded-xl border border-indigo-100">👤 ${child.val().nome}</li>`;
-                });
+                snap.forEach(c => list.innerHTML += `<li class="bg-indigo-50 p-3 rounded-xl border border-indigo-100">👤 ${c.val().nome}</li>`);
             }
         }
 
-        document.getElementById('enter-btn').addEventListener('click', async () => {
-            const name = document.getElementById('user-name').value.trim();
-            if (name.length < 3) return alert("Digite um nome válido.");
-            
-            nomeUsuarioAtual = name;
-            const code = name.substring(0,3).toUpperCase() + "381";
-            
-            await update(ref(db, 'usuarios/' + name), { nome: name, codigo: code });
-            
-            document.getElementById('display-name').innerText = name;
-            document.getElementById('my-code').innerText = code;
-            document.getElementById('login-box').classList.add('hidden');
-            document.getElementById('app-box').classList.remove('hidden');
-            
-            carregarQuadro(name);
-        });
-
-        document.getElementById('register-ref-btn').addEventListener('click', async () => {
-            const indicado = document.getElementById('new-indicated-name').value.trim();
-            if (indicado.length < 3) return alert("Nome do indicado muito curto.");
-            
-            await push(ref(db, 'usuarios/' + nomeUsuarioAtual + '/indicados'), { nome: indicado });
-            document.getElementById('new-indicated-name').value = ""; 
-            alert("Indicação registrada!");
-            carregarQuadro(nomeUsuarioAtual);
+        document.getElementById('copy-code-btn').addEventListener('click', () => {
+            navigator.clipboard.writeText(usuarioAtual.codigo);
+            alert("Código copiado!");
         });
     </script>
 </body>
