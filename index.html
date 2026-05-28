@@ -3,38 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Indica+ | Acesso</title>
+    <title>Indica+ | Acesso Rápido</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
 
-    <div id="auth-box" class="w-full max-w-sm bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-black text-slate-900">Indica<span class="text-indigo-600">Mais</span></h1>
-            <p class="text-slate-500 text-sm mt-2">Gerencie suas indicações</p>
-        </div>
-
-        <div class="space-y-4">
-            <input type="email" id="email" placeholder="Seu e-mail" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
-            <input type="password" id="password" placeholder="Senha (mín. 6 caracteres)" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
-            
-            <button id="main-btn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl hover:bg-indigo-700 transition">Entrar</button>
-            
-            <p class="text-center text-sm text-slate-500">
-                Não tem conta? <button id="toggle-mode" class="text-indigo-600 font-bold underline">Cadastre-se</button>
-            </p>
-        </div>
+    <div id="login-box" class="w-full max-w-sm bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
+        <h1 class="text-2xl font-bold text-center mb-6">Indica<span class="text-indigo-600">Mais</span></h1>
+        <input type="text" id="user-key" placeholder="Digite seu código ou nome" class="w-full p-4 mb-4 bg-slate-50 border border-slate-200 rounded-2xl">
+        <button id="enter-btn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl">Entrar no Painel</button>
     </div>
 
     <div id="app-box" class="hidden w-full max-w-sm bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
-        <h2 class="text-xl font-bold mb-2">Bem-vindo!</h2>
-        <p id="user-email" class="text-slate-500 text-sm mb-6"></p>
-        <button id="logout-btn" class="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 transition">Sair</button>
+        <h2 class="text-lg font-bold mb-4">Olá, <span id="display-user"></span>!</h2>
+        <div class="p-4 bg-indigo-50 rounded-2xl text-center mb-4">
+            <p class="text-xs text-indigo-600 font-bold uppercase">Suas Indicações</p>
+            <p id="count" class="text-4xl font-black text-indigo-700">0</p>
+        </div>
+        <button onclick="location.reload()" class="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl">Sair</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD0q0agSZcI-agco2QT8Y3Q4my-ydPVVgs",
@@ -42,54 +33,29 @@
             projectId: "indica-mais-ce824"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        setPersistence(auth, browserLocalPersistence);
+        const db = getDatabase(initializeApp(firebaseConfig));
 
-        let isLogin = true;
+        document.getElementById('enter-btn').addEventListener('click', async () => {
+            const key = document.getElementById('user-key').value.trim();
+            if (!key) return alert("Digite um nome ou código!");
 
-        // Alternar entre Login e Cadastro
-        document.getElementById('toggle-mode').addEventListener('click', () => {
-            isLogin = !isLogin;
-            document.getElementById('main-btn').innerText = isLogin ? 'Entrar' : 'Criar Conta';
-            document.getElementById('toggle-mode').innerText = isLogin ? 'Cadastre-se' : 'Fazer Login';
-        });
-
-        // Ação Principal
-        document.getElementById('main-btn').addEventListener('click', async () => {
-            const email = document.getElementById('email').value;
-            const pass = document.getElementById('password').value;
-
-            try {
-                if (isLogin) {
-                    await signInWithEmailAndPassword(auth, email, pass);
-                } else {
-                    await createUserWithEmailAndPassword(auth, email, pass);
-                }
-            } catch (err) {
-                let msg = "Erro desconhecido";
-                if (err.code === 'auth/invalid-email') msg = "E-mail inválido.";
-                if (err.code === 'auth/weak-password') msg = "Senha muito curta (mín. 6 caracteres).";
-                if (err.code === 'auth/email-already-in-use') msg = "Este e-mail já está cadastrado.";
-                if (err.code === 'auth/wrong-password') msg = "Senha incorreta.";
-                if (err.code === 'auth/user-not-found') msg = "Usuário não encontrado.";
-                alert(msg);
+            // Tenta buscar os dados do usuário no Firebase
+            const snapshot = await get(ref(db, 'usuarios/' + key));
+            
+            // Se não existir, cria o usuário no banco automaticamente
+            if (!snapshot.exists()) {
+                await update(ref(db, 'usuarios/' + key), { nome: key, indicações: 0 });
             }
-        });
 
-        // Controle de Estado
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('auth-box').classList.add('hidden');
-                document.getElementById('app-box').classList.remove('hidden');
-                document.getElementById('user-email').innerText = user.email;
-            } else {
-                document.getElementById('auth-box').classList.remove('hidden');
-                document.getElementById('app-box').classList.add('hidden');
-            }
+            // Exibe o painel
+            document.getElementById('display-user').innerText = key;
+            document.getElementById('login-box').classList.add('hidden');
+            document.getElementById('app-box').classList.remove('hidden');
+            
+            // Carrega as indicações atuais
+            const data = (await get(ref(db, 'usuarios/' + key))).val();
+            document.getElementById('count').innerText = data.indicações;
         });
-
-        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
     </script>
 </body>
 </html>
