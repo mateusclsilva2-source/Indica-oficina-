@@ -8,31 +8,28 @@
 </head>
 <body class="bg-slate-50 min-h-screen p-4">
 
-    <!-- Tela 2: Login/Cadastro (Validação de nomes) -->
+    <!-- Tela de Login -->
     <div id="login-box" class="max-w-md mx-auto bg-white p-8 rounded-3xl shadow-xl mt-10">
         <h1 class="text-2xl font-bold text-center mb-6">Indica<span class="text-indigo-600">Mais</span></h1>
         <input type="text" id="user-name" placeholder="Seu nome real" class="w-full p-4 mb-4 bg-slate-50 border rounded-2xl">
         <button id="enter-btn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl">Entrar / Registrar</button>
     </div>
 
-    <!-- Tela 1: Painel (Botão voltar e quadro de indicações) -->
+    <!-- Painel -->
     <div id="app-box" class="hidden max-w-md mx-auto bg-white p-6 rounded-3xl shadow-xl mt-10">
         <button onclick="location.reload()" class="text-sm text-slate-400 mb-4">← Voltar à tela inicial</button>
         
         <h2 class="text-xl font-bold">Olá, <span id="display-name"></span>!</h2>
-        <p class="text-indigo-600 font-bold mb-4">Seu Código: <span id="my-code" class="text-xl"></span></p>
+        <p class="text-indigo-600 font-bold mb-6">Seu Código: <span id="my-code" class="text-xl"></span></p>
 
-        <!-- Quadro de quem indicou -->
-        <div id="recommender-info" class="p-3 bg-indigo-50 rounded-xl text-sm mb-4 border border-indigo-100"></div>
-
-        <div class="space-y-3">
-            <input type="text" id="new-indicated-name" placeholder="Nome do indicado" class="w-full p-3 rounded-xl border">
-            <input type="text" id="ref-code-used" placeholder="Código de quem te indicou" class="w-full p-3 rounded-xl border">
+        <div class="space-y-3 mb-8">
+            <input type="text" id="new-indicated-name" placeholder="Nome do indicado" class="w-full p-3 rounded-xl border bg-slate-50">
+            <input type="text" id="ref-code-used" placeholder="Código de quem te indicou" class="w-full p-3 rounded-xl border bg-slate-50">
             <button id="register-ref-btn" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Registrar Indicação</button>
         </div>
 
-        <h3 class="font-bold mt-6 mb-2">Quem você indicou:</h3>
-        <ul id="ref-list" class="text-sm text-slate-600"></ul>
+        <h3 class="font-bold mb-3 border-b pb-2">Quem você indicou:</h3>
+        <ul id="ref-list" class="space-y-2 text-sm text-slate-700"></ul>
     </div>
 
     <script type="module">
@@ -41,33 +38,45 @@
 
         const db = getDatabase(initializeApp({ databaseURL: "https://indica-mais-ce824-default-rtdb.firebaseio.com" }));
 
-        // Validação: Apenas letras e espaços
-        const isNomeValido = (nome) => /^[a-zA-ZÀ-ÿ\s]+$/.test(nome.trim()) && nome.trim().length > 0;
+        let nomeUsuarioAtual = "";
+
+        // Função para carregar a lista do banco
+        async function carregarQuadro(nome) {
+            const list = document.getElementById('ref-list');
+            list.innerHTML = "";
+            const snap = await get(ref(db, 'usuarios/' + nome + '/indicados'));
+            if(snap.exists()){
+                snap.forEach(child => {
+                    list.innerHTML += `<li class="bg-indigo-50 p-3 rounded-xl border border-indigo-100">👤 ${child.val().nome}</li>`;
+                });
+            }
+        }
 
         document.getElementById('enter-btn').addEventListener('click', async () => {
-            const name = document.getElementById('user-name').value;
-            if (!isNomeValido(name)) return alert("Por favor, digite um nome real (apenas letras).");
+            const name = document.getElementById('user-name').value.trim();
+            if (name.length < 3) return alert("Digite um nome válido.");
             
-            const code = name.substring(0,3).toUpperCase() + Math.floor(Math.random()*900);
+            nomeUsuarioAtual = name;
+            const code = name.substring(0,3).toUpperCase() + "381"; // Mantendo seu código padrão
+            
             await update(ref(db, 'usuarios/' + name), { nome: name, codigo: code });
             
             document.getElementById('display-name').innerText = name;
             document.getElementById('my-code').innerText = code;
             document.getElementById('login-box').classList.add('hidden');
             document.getElementById('app-box').classList.remove('hidden');
+            
+            carregarQuadro(name); // Carrega a lista automaticamente
         });
 
         document.getElementById('register-ref-btn').addEventListener('click', async () => {
-            const indicado = document.getElementById('new-indicated-name').value;
-            if (!isNomeValido(indicado)) return alert("Nome do indicado inválido.");
+            const indicado = document.getElementById('new-indicated-name').value.trim();
+            if (indicado.length < 3) return alert("Nome do indicado muito curto.");
             
-            const indicador = document.getElementById('display-name').innerText;
-            push(ref(db, 'usuarios/' + indicador + '/indicados'), { nome: indicado });
+            await push(ref(db, 'usuarios/' + nomeUsuarioAtual + '/indicados'), { nome: indicado });
+            document.getElementById('new-indicated-name').value = ""; // Limpa campo
             alert("Indicação registrada!");
-            
-            // Atualiza quadro
-            const list = document.getElementById('ref-list');
-            list.innerHTML += `<li class="bg-slate-50 p-2 mb-1 rounded">${indicado}</li>`;
+            carregarQuadro(nomeUsuarioAtual); // Atualiza o quadro imediatamente
         });
     </script>
 </body>
