@@ -8,36 +8,37 @@
 </head>
 <body class="bg-slate-50 min-h-screen p-4">
 
-    <!-- Tela de Login -->
+    <!-- Tela de Login + Relatório -->
     <div id="login-box" class="max-w-md mx-auto bg-white p-8 rounded-3xl shadow-xl mt-10">
         <h1 class="text-2xl font-bold text-center mb-6">Indica<span class="text-indigo-600">Mais</span></h1>
+        
         <div class="space-y-4">
             <input type="text" id="user-name" placeholder="Seu nome real" class="w-full p-4 bg-slate-50 border rounded-2xl">
             <button id="enter-btn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl">Gerar meu código</button>
-            <div class="text-center text-slate-400 text-xs">OU</div>
+            <div class="text-center text-slate-400 text-xs uppercase">ou</div>
             <input type="text" id="login-code" placeholder="Código de indicador" class="w-full p-4 bg-slate-50 border rounded-2xl uppercase">
             <button id="login-code-btn" class="w-full bg-slate-800 text-white font-bold py-4 rounded-2xl">Acessar Painel</button>
         </div>
+
+        <!-- Relatório Geral inserido aqui -->
+        <div class="mt-8 border-t pt-6">
+            <h3 class="font-bold mb-3 text-slate-700">Ranking Geral:</h3>
+            <div id="report-list" class="space-y-2 text-sm text-slate-600"></div>
+        </div>
     </div>
 
-    <!-- Painel -->
+    <!-- Painel (Escondido inicialmente) -->
     <div id="app-box" class="hidden max-w-md mx-auto bg-white p-6 rounded-3xl shadow-xl mt-10">
         <button onclick="location.reload()" class="text-sm text-slate-400 mb-4">← Sair</button>
-        
         <h2 class="text-xl font-bold">Olá, <span id="display-name"></span>!</h2>
         <div class="flex items-center gap-2 mb-6">
             <p class="text-indigo-600 font-bold">Seu Código: <span id="my-code" class="text-xl"></span></p>
             <button id="copy-code-btn" class="bg-slate-100 px-3 py-1 rounded-lg text-xs font-bold text-slate-600">Copiar</button>
         </div>
-
-        <div class="space-y-3 mb-8">
+        <div class="space-y-3">
             <input type="text" id="new-indicated-name" placeholder="Nome do indicado" class="w-full p-3 rounded-xl border bg-slate-50">
             <button id="register-ref-btn" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Registrar Indicação</button>
         </div>
-
-        <!-- NOVO QUADRO DE RELATÓRIO -->
-        <h3 class="font-bold mb-3 border-b pb-2">Relatório de Indicadores:</h3>
-        <div id="report-list" class="space-y-2 text-sm text-slate-600"></div>
     </div>
 
     <script type="module">
@@ -56,13 +57,16 @@
                     const data = user.val();
                     const total = data.indicados ? Object.keys(data.indicados).length : 0;
                     reportList.innerHTML += `
-                        <div class="flex justify-between bg-slate-50 p-3 rounded-xl border">
-                            <span><b>${data.nome}</b> (${data.codigo})</span>
-                            <span class="font-bold text-indigo-600">${total} indicações</span>
+                        <div class="flex justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <span class="font-medium">${data.nome}</span>
+                            <span class="font-bold text-indigo-600">${total} pts</span>
                         </div>`;
                 });
             }
         }
+
+        // Carrega o ranking assim que a página abre
+        carregarRelatorio();
 
         async function entrar(nome, codigo) {
             let userRef = null;
@@ -83,7 +87,6 @@
             document.getElementById('my-code').innerText = userRef.codigo;
             document.getElementById('login-box').classList.add('hidden');
             document.getElementById('app-box').classList.remove('hidden');
-            carregarRelatorio();
         }
 
         document.getElementById('enter-btn').addEventListener('click', () => entrar(document.getElementById('user-name').value.trim(), null));
