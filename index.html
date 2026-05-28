@@ -20,7 +20,12 @@
         <button onclick="location.reload()" class="text-sm text-slate-400 mb-4">← Voltar à tela inicial</button>
         
         <h2 class="text-xl font-bold">Olá, <span id="display-name"></span>!</h2>
-        <p class="text-indigo-600 font-bold mb-6">Seu Código: <span id="my-code" class="text-xl"></span></p>
+        
+        <!-- Botão de copiar adicionado aqui -->
+        <div class="flex items-center gap-2 mb-6">
+            <p class="text-indigo-600 font-bold">Seu Código: <span id="my-code" class="text-xl"></span></p>
+            <button id="copy-code-btn" class="bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-lg text-xs font-bold text-slate-600">Copiar</button>
+        </div>
 
         <div class="space-y-3 mb-8">
             <input type="text" id="new-indicated-name" placeholder="Nome do indicado" class="w-full p-3 rounded-xl border bg-slate-50">
@@ -40,7 +45,16 @@
 
         let nomeUsuarioAtual = "";
 
-        // Função para carregar a lista do banco
+        // Função para copiar código
+        document.getElementById('copy-code-btn').addEventListener('click', () => {
+            const code = document.getElementById('my-code').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.getElementById('copy-code-btn');
+                btn.innerText = "Copiado!";
+                setTimeout(() => btn.innerText = "Copiar", 2000);
+            });
+        });
+
         async function carregarQuadro(nome) {
             const list = document.getElementById('ref-list');
             list.innerHTML = "";
@@ -57,7 +71,7 @@
             if (name.length < 3) return alert("Digite um nome válido.");
             
             nomeUsuarioAtual = name;
-            const code = name.substring(0,3).toUpperCase() + "381"; // Mantendo seu código padrão
+            const code = name.substring(0,3).toUpperCase() + "381";
             
             await update(ref(db, 'usuarios/' + name), { nome: name, codigo: code });
             
@@ -66,7 +80,7 @@
             document.getElementById('login-box').classList.add('hidden');
             document.getElementById('app-box').classList.remove('hidden');
             
-            carregarQuadro(name); // Carrega a lista automaticamente
+            carregarQuadro(name);
         });
 
         document.getElementById('register-ref-btn').addEventListener('click', async () => {
@@ -74,9 +88,9 @@
             if (indicado.length < 3) return alert("Nome do indicado muito curto.");
             
             await push(ref(db, 'usuarios/' + nomeUsuarioAtual + '/indicados'), { nome: indicado });
-            document.getElementById('new-indicated-name').value = ""; // Limpa campo
+            document.getElementById('new-indicated-name').value = ""; 
             alert("Indicação registrada!");
-            carregarQuadro(nomeUsuarioAtual); // Atualiza o quadro imediatamente
+            carregarQuadro(nomeUsuarioAtual);
         });
     </script>
 </body>
